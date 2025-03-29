@@ -1,5 +1,8 @@
 from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
+from typing import List
 
 from data.config import new_session, Lots
 from models.lot import LotCreate, LotCreateResponse
@@ -24,5 +27,13 @@ async def create_lot(lot_data: LotCreate, user_id: int) -> LotCreateResponse:
         return LotCreateResponse(id=new_lot.id)
 
 
-# async def get_lots(user_id: int) -> List[Lots]:
-#     async with new_session() as session:
+async def get_lots(user_id: int) -> List[Lots]:
+    async with new_session() as session:
+        query = (
+            select(Lots)
+            .where(Lots.user_id == user_id)
+            .options(selectinload(Lots.microgreen))
+        )
+        result = await session.execute(query)
+        lots = result.scalars().all()
+        return lots
