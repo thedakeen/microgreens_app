@@ -1,8 +1,12 @@
+import os
 from sqlalchemy import ForeignKey, UniqueConstraint, DateTime, func
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, relationship
 
-engine = create_async_engine("sqlite+aiosqlite:///./microgreens_db.sqlite")
+
+DATABASE_URL = "sqlite+aiosqlite:///../db/microgreens_db.sqlite"
+
+engine = create_async_engine(DATABASE_URL)
 new_session = async_sessionmaker(engine, expire_on_commit=False)
 
 Base = declarative_base()
@@ -36,5 +40,6 @@ class UserOrm(Base):
     email: Mapped[str]
     hashed_password: Mapped[str]
     created_at: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
-    databases: Mapped[list[DatabaseOrm] | None] = relationship('DatabaseOrm', back_populates='user',
-                                                               cascade="all, delete")
+    databases: Mapped[list[DatabaseOrm] | None] = relationship(
+        'DatabaseOrm', back_populates='user', cascade="all, delete"
+    )
