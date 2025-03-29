@@ -31,7 +31,7 @@ async def verify_token(token: str) -> UserOrm | None:
         email = payload.get("sub")
         if not email:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token.")
-        user = await find_user(email)
+        user = await find_user_by_email(email)
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token.")
         return user
@@ -59,6 +59,15 @@ async def register(data: LoginRequest) -> User:
         await session.commit()
         user = User.from_orm(user)
         return user
+
+
+
+async def find_user_by_email(email: str) -> UserOrm | None:
+    async with new_session() as session:
+        query = select(UserOrm).where(UserOrm.email == email)
+        result = await session.execute(query)
+        user_model = result.scalars().first()
+        return user_model
 
 
 async def find_user(user: LoginRequest) -> bool:
