@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from data.config import create_tables, delete_tables, seed_microgreens_library
-from web import user
+from web import user, lot
 from tools.аuthMiddleware import AuthMiddleware
 load_dotenv()
 
@@ -24,6 +24,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(AuthMiddleware)
 app.include_router(user.router)
+app.include_router(lot.router)
 
 
 if __name__ == '__main__':
