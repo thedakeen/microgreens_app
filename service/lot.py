@@ -22,3 +22,7 @@ async def create_lot(lot_data: LotCreate, user_id: int) -> LotCreateResponse:
             raise HTTPException(status_code=400, detail="Error creating lot")
         await session.refresh(new_lot)
         return LotCreateResponse(id=new_lot.id)
+
+
+# async def get_lots(user_id: int) -> List[Lots]:
+#     async with new_session() as session:
