@@ -7,8 +7,8 @@ import jwt
 import os
 from fastapi import HTTPException, status
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
+SECRET_KEY = str(os.getenv("SECRET_KEY"))
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 
 def hash_password(password: str) -> str:
