@@ -6,6 +6,8 @@ from typing import List
 
 from models.lot import LotCreate, LotCreateResponse, LotsGetResponse, LotDetailResponse
 from service import lot as lot_service
+from service import entry as entry_service
+from service.entry import delete_entry
 from web.helpers import get_current_user_id
 
 router = APIRouter(prefix="/lots", tags=["Lots"])
@@ -55,3 +57,18 @@ async def get_lot_detail_endpoint(lot_id: int, current_user_id: int = Depends(ge
         "entries": lot.entries
     }
     return lot_data
+
+
+@router.delete("/{lot_id}", status_code=status.HTTP_200_OK)
+async def delete_lot(lot_id: int,
+                            user_id: int = Depends(get_current_user_id)) -> dict | None:
+    deleted_lot = await lot_service.delete_lot(lot_id, user_id)
+    return deleted_lot
+
+
+@router.delete("/{lot_id}/entry/{entry_id}", status_code=status.HTTP_200_OK)
+async def delete_notification(lot_id: int, entry_id: int,
+                              user_id: int = Depends(get_current_user_id)) -> dict | None:
+    deleted_entry = await entry_service.delete_entry(lot_id, entry_id, user_id)
+    return deleted_entry
+
