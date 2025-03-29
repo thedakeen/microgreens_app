@@ -5,7 +5,6 @@ from sqlalchemy.orm import Mapped, mapped_column, declarative_base, relationship
 
 from sqlalchemy import select
 
-
 DATABASE_URL = "sqlite+aiosqlite:///../db/microgreens_db.sqlite"
 
 engine = create_async_engine(DATABASE_URL)
@@ -26,7 +25,9 @@ async def delete_tables():
 
 class MicrogreenOrm(Base):
     __tablename__ = 'microgreens_library'
-
+    __table_args__ = (
+        UniqueConstraint('name', name='unique_microgreen_name'),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     days_to_grow: Mapped[int]
@@ -34,29 +35,29 @@ class MicrogreenOrm(Base):
     light: Mapped[str]
     avatar: Mapped[str]
 
-    lots: Mapped[list['Lots']] = relationship('Lots', back_populates='microgreen')
+    lots: Mapped[list['LotOrm'] | None] = relationship('LotOrm', back_populates='microgreen', cascade="all, delete")
 
 
 class UserOrm(Base):
     __tablename__ = "users"
-
+    __table_args__ = (
+        UniqueConstraint('email', name='unique_user_email'),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str]
     hashed_password: Mapped[str]
     created_at: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
 
-    lots: Mapped[list['Lots']] = relationship('Lots', back_populates='user', cascade="all, delete")
-    notifications: Mapped[list['Notifications']] = relationship('Notifications', back_populates='user',
-                                                                cascade="all, delete")
+    lots: Mapped[list['LotOrm'] | None] = relationship('LotOrm', back_populates='user', cascade="all, delete")
+    notifications: Mapped[list['NotificationOrm'] | None] = relationship('NotificationOrm', back_populates='user',
+                                                                         cascade="all, delete")
 
 
-class Lots(Base):
+class LotOrm(Base):
     __tablename__ = 'lots'
-
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    microgreen_type: Mapped[int] = mapped_column(ForeignKey('microgreens_library.id', ondelete='CASCADE'),
-                                                 nullable=False)
+    microgreen_id: Mapped[int] = mapped_column(ForeignKey('microgreens_library.id', ondelete='CASCADE'), nullable=False)
     sowing_date: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     substrate_type: Mapped[str]
     expected_harvest_date: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
@@ -64,12 +65,11 @@ class Lots(Base):
 
     user: Mapped['UserOrm'] = relationship('UserOrm', back_populates='lots')
     microgreen: Mapped['MicrogreenOrm'] = relationship('MicrogreenOrm', back_populates='lots')
-    entries: Mapped[list['Entries']] = relationship('Entries', back_populates='lot', cascade="all, delete")
+    entries: Mapped[list['EntryOrm'] | None] = relationship('EntryOrm', back_populates='lot', cascade="all, delete")
 
 
-class Entries(Base):
+class EntryOrm(Base):
     __tablename__ = 'entries'
-
     id: Mapped[int] = mapped_column(primary_key=True)
     lot_id: Mapped[int] = mapped_column(ForeignKey('lots.id', ondelete='CASCADE'), nullable=False)
     entry_date: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
@@ -79,12 +79,11 @@ class Entries(Base):
     moisture: Mapped[float]
     created_at: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
 
-    lot: Mapped['Lots'] = relationship('Lots', back_populates='entries')
+    lot: Mapped['LotOrm'] = relationship('LotOrm', back_populates='entries')
 
 
-class Notifications(Base):
+class NotificationOrm(Base):
     __tablename__ = 'notifications'
-
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     message: Mapped[str]
@@ -93,9 +92,6 @@ class Notifications(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
 
     user: Mapped['UserOrm'] = relationship('UserOrm', back_populates='notifications')
-
-
-
 
 
 async def seed_microgreens_library():
@@ -137,4 +133,3 @@ async def seed_microgreens_library():
             session.add_all(default_microgreens)
             await session.commit()
             print("Microgreens library seeded with default data.")
-

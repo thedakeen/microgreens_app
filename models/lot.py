@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 
-
 validationDesc = "This field is required"
 
 
@@ -12,6 +11,7 @@ class LotCreate(BaseModel):
     substrate_type: str = Field(..., description=validationDesc)
     expected_harvest_date: datetime = Field(..., description=validationDesc)
 
+
 class LotCreateResponse(BaseModel):
     id: int
 
@@ -19,6 +19,7 @@ class LotCreateResponse(BaseModel):
 # fetch all lots
 class LotsGet(BaseModel):
     user_id: int
+
 
 class LotsGetResponse(BaseModel):
     id: int
