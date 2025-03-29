@@ -61,7 +61,6 @@ async def register(data: LoginRequest) -> User:
         return user
 
 
-
 async def find_user_by_email(email: str) -> UserOrm | None:
     async with new_session() as session:
         query = select(UserOrm).where(UserOrm.email == email)

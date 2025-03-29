@@ -3,14 +3,14 @@ from fastapi import FastAPI
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from data.config import create_tables, delete_tables, seed_microgreens_library
-from web import user, lot, entry, microgreen_library, notification
+from web import user, lot, entry, microgreen_library, notification,analysis
 from tools.аuthMiddleware import AuthMiddleware
+
 load_dotenv()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # await delete_tables()
-    # print("База пустая")
     await create_tables()
     print("База готова к работе")
 
@@ -29,7 +29,7 @@ app.include_router(entry.router)
 app.include_router(microgreen_library.router)
 app.include_router(entry.router)
 app.include_router(notification.router)
-
+app.include_router(analysis.router)
 
 if __name__ == '__main__':
     uvicorn.run("main:app", reload=True)

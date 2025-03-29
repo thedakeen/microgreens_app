@@ -11,3 +11,5 @@ python-dotenv
 pydantic
 pydantic[email]
 python-dotenv
+cachetools
+g4f[all]

@@ -2,10 +2,10 @@ import os
 from sqlalchemy import ForeignKey, UniqueConstraint, DateTime, func
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, relationship
-
 from sqlalchemy import select
 
-DATABASE_URL = "sqlite+aiosqlite:///../db/microgreens_db.sqlite"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATABASE_URL = f"sqlite+aiosqlite:///{os.path.join(BASE_DIR, 'db', 'microgreens_db.sqlite')}"
 
 engine = create_async_engine(DATABASE_URL)
 new_session = async_sessionmaker(engine, expire_on_commit=False)
