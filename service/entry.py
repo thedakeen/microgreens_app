@@ -29,6 +29,7 @@ async def save_photo(upload: UploadFile, upload_dir: str = "../static/images/ent
         )
     return file_path
 
+
 async def create_entry(data: EntryCreate, lot_id: int, photo_url: str) -> EntryRead:
     try:
         async with new_session() as session:
@@ -45,6 +46,7 @@ async def create_entry(data: EntryCreate, lot_id: int, photo_url: str) -> EntryR
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Some parameters do not exist"
         )
+
 
 async def get_entries(lot_id: int) -> List[EntryRead] | None:
     try:

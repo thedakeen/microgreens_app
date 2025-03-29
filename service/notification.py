@@ -53,25 +53,19 @@ async def delete_notification(lot_id: int, notification_id: int, user_id: int) -
     if lot_model.user_id != user_id:
         raise HTTPException(status_code=403, detail="Access Forbidden!")
 
-    try:
-        async with new_session() as session:
-            result = await session.execute(
-                select(NotificationOrm).where(
-                    NotificationOrm.id == notification_id,
-                    NotificationOrm.lot_id == lot_id
-                )
+    async with new_session() as session:
+        result = await session.execute(
+            select(NotificationOrm).where(
+                NotificationOrm.id == notification_id,
+                NotificationOrm.lot_id == lot_id
             )
-            notification = result.scalars().first()
+        )
+        notification = result.scalars().first()
 
-            if not notification:
-                raise HTTPException(status_code=404, detail="Notification not found in the specified lot")
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found in the specified lot")
 
-            await session.delete(notification)
-            await session.commit()
+        await session.delete(notification)
+        await session.commit()
 
-        return {"detail": "Notification successfully deleted"}
-
-    except Exception as e:
-        print(f"Error deleting notification: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete notification")
-
+    return {"detail": "Notification successfully deleted"}
