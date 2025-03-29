@@ -1,11 +1,15 @@
+import os
+
 import uvicorn
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from data.config import create_tables, delete_tables, seed_microgreens_library
 from web import user, lot, entry, microgreen_library, notification
 from tools.аuthMiddleware import AuthMiddleware
 load_dotenv()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,6 +26,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+static_dir = os.path.join(base_dir, "static")
+
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
 app.add_middleware(AuthMiddleware)
 app.include_router(user.router)
 app.include_router(lot.router)
