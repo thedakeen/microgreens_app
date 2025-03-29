@@ -49,8 +49,6 @@ class UserOrm(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
 
     lots: Mapped[list['LotOrm'] | None] = relationship('LotOrm', back_populates='user', cascade="all, delete")
-    notifications: Mapped[list['NotificationOrm'] | None] = relationship('NotificationOrm', back_populates='user',
-                                                                         cascade="all, delete")
 
 
 class LotOrm(Base):
@@ -66,6 +64,8 @@ class LotOrm(Base):
     user: Mapped['UserOrm'] = relationship('UserOrm', back_populates='lots')
     microgreen: Mapped['MicrogreenOrm'] = relationship('MicrogreenOrm', back_populates='lots')
     entries: Mapped[list['EntryOrm'] | None] = relationship('EntryOrm', back_populates='lot', cascade="all, delete")
+    notifications: Mapped[list['NotificationOrm'] | None] = relationship('NotificationOrm', back_populates='lot',
+                                                                         cascade="all, delete")
 
 
 class EntryOrm(Base):
@@ -85,13 +85,13 @@ class EntryOrm(Base):
 class NotificationOrm(Base):
     __tablename__ = 'notifications'
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    lot_id: Mapped[int] = mapped_column(ForeignKey('lots.id', ondelete='CASCADE'), nullable=False)
     message: Mapped[str]
     scheduled_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     is_delivered: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
 
-    user: Mapped['UserOrm'] = relationship('UserOrm', back_populates='notifications')
+    lot: Mapped['LotOrm'] = relationship('LotOrm', back_populates='notifications')
 
 
 async def seed_microgreens_library():
