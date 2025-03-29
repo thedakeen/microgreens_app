@@ -1,2 +1,16 @@
-.idea
+# PyCharm
+.idea/
+
+# Python
+pycache/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+
+# SQLite Database
 db/microgreens_db.sqlite
+db/*.sqlite
+db/*.db
