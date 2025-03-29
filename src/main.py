@@ -28,6 +28,8 @@ app.include_router(lot.router)
 app.include_router(entry.router)
 app.include_router(microgreen_library.router)
 
+app.include_router(entry.router)
+
 
 if __name__ == '__main__':
     uvicorn.run("main:app", reload=True)
