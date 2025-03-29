@@ -8,6 +8,7 @@ from data.config import new_session, EntryOrm
 from models.entry import EntryCreate, EntryRead
 from typing import List
 
+from service import lot
 
 async def save_photo(upload: UploadFile, upload_dir: str = "../static/images/entries/") -> str:
     os.makedirs(upload_dir, exist_ok=True)
@@ -60,3 +61,33 @@ async def get_entries(lot_id: int) -> List[EntryRead] | None:
     except Exception as e:
         print(f"Error fetching entries: {e}")
         return None
+
+
+async def delete_entry(lot_id: int, entry_id: int, user_id: int) -> dict:
+    lot_model = await lot.get_lot_detail(lot_id)
+    if not lot_model:
+        raise HTTPException(status_code=404, detail="Lot not found")
+    if lot_model.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Access Forbidden!")
+
+    try:
+        async with new_session() as session:
+            result = await session.execute(
+                select(EntryOrm).where(
+                    EntryOrm.id == entry_id,
+                    EntryOrm.lot_id == lot_id
+                )
+            )
+            entry = result.scalars().first()
+
+            if not entry:
+                raise HTTPException(status_code=404, detail="Entry not found in the specified lot")
+
+            await session.delete(entry)
+            await session.commit()
+
+        return {"detail": "Entry successfully deleted"}
+
+    except Exception as e:
+        print(f"Error deleting entry: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete entry")

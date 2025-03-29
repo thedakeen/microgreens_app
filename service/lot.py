@@ -4,10 +4,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
-from data.config import new_session, LotOrm, NotificationOrm
+from data.config import new_session, LotOrm
 from models.lot import LotCreate, LotCreateResponse, LotsGetResponse
-from models.entry import EntryRead
-
 
 async def create_lot(lot_data: LotCreate, user_id: int) -> LotCreateResponse:
     async with new_session() as session:
@@ -53,3 +51,33 @@ async def get_lot_detail(lot_id: int) -> Optional[LotOrm]:
         result = await session.execute(query)
         lot = result.scalars().first()
         return lot
+
+
+async def delete_lot(lot_id: int, user_id: int) -> dict:
+    lot = await get_lot_detail(lot_id)
+    if not lot:
+        raise HTTPException(status_code=404, detail="Lot not found")
+    if lot.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Access Forbidden!")
+
+    try:
+        async with new_session() as session:
+            result = await session.execute(
+                select(LotOrm).where(
+                    LotOrm.id == lot_id,
+                    LotOrm.id == lot_id
+                )
+            )
+            lot = result.scalars().first()
+
+            if not lot:
+                raise HTTPException(status_code=404, detail="Lot not found")
+
+            await session.delete(lot)
+            await session.commit()
+
+        return {"detail": "Lot successfully deleted"}
+
+    except Exception as e:
+        print(f"Error deleting lot: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete lot")
