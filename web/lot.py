@@ -24,7 +24,7 @@ async def get_all_lots(current_user_id: int = Depends(get_current_user_id)):
         response.append(LotsGetResponse(
             id=lot.id,
             user_id=lot.user_id,
-            microgreen_type=lot.microgreen_type,
+            microgreen_type=lot.microgreen_id,
             sowing_date=lot.sowing_date,
             substrate_type=lot.substrate_type,
             expected_harvest_date=lot.expected_harvest_date,
