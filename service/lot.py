@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
-from data.config import new_session, LotOrm
+from data.config import new_session, LotOrm, NotificationOrm
 from models.lot import LotCreate, LotCreateResponse, LotsGetResponse
 from models.entry import EntryRead
 
