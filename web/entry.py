@@ -1,4 +1,6 @@
-from fastapi import APIRouter, status, security, Depends, HTTPException
+from datetime import datetime
+
+from fastapi import APIRouter, status, security, Depends, HTTPException, UploadFile, File, Form
 
 from models.entry import EntryCreate, EntryRead
 from typing import List
@@ -16,10 +18,14 @@ router = APIRouter(prefix="/lots", tags=["Entries"])
 
 @router.post("/{lot_id}/entry", response_model=EntryRead, status_code=status.HTTP_201_CREATED)
 async def create_entry_endpoint(
-    lot_id: int,
-    entry: EntryCreate,
-    current_user_id: int = Depends(get_current_user_id)
-):
+        lot_id: int,
+        entry_date: datetime = Form(...),
+        description: str = Form(...),
+        height: float = Form(...),
+        moisture: float = Form(...),
+        photo: UploadFile = File(...),
+        current_user_id: int = Depends(get_current_user_id)
+) -> EntryRead:
     lot = await get_lot_detail(lot_id)
     if not lot:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found")
@@ -28,7 +34,19 @@ async def create_entry_endpoint(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not allowed to add an entry to this lot"
         )
-    created_entry = await service.create_entry(entry, lot_id)
+    photo_url = await service.save_photo(photo)
+
+    entry_data = {
+        "entry_date": entry_date,
+        "description": description,
+        "height": height,
+        "moisture": moisture,
+        "photo_url": photo_url
+    }
+    from models.entry import EntryCreate
+    entry_obj = EntryCreate.parse_obj(entry_data)
+
+    created_entry = await service.create_entry(entry_obj, lot_id, photo_url)
     return created_entry
 
 
