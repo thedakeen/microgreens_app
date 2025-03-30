@@ -6,11 +6,12 @@ from service import entry, lot
 import g4f
 from g4f.client import AsyncClient
 from g4f.Provider.OIVSCode import OIVSCode
-from cachetools import TTLCache
+from cachetools import LRUCache
 from models import entry as entry_mod
 from models import lot as lot_mod
 from datetime import datetime
-cache = TTLCache(maxsize=100, ttl=86400)
+
+cache = LRUCache(maxsize=100)
 
 
 async def request_to_AI(path: str, entries: List[entry_mod.EntryRead], lot_model: lot_mod.LotDetailResponse):
@@ -41,7 +42,7 @@ async def request_to_AI(path: str, entries: List[entry_mod.EntryRead], lot_model
 
         4️⃣ Рекомендации по уходу: ТЕКСТ (Требуется ли изменение режима полива, освещения или удобрений?)
 
-        6️⃣ **Прогноз на сбор урожая**: ТЕКСТ (Успеют ли ростки вырасти до ожидаемой даты сбора? Есть ли риск задержки сбора из-за состояния растения +- сколько дней?)
+        6️⃣ **Прогноз на сбор урожая**: ТЕКСТ (Успеют ли ростки вырасти до ожидаемой даты сбора? Сколько составит рисе задержки урожая (в погрешности пару дней)
         """
 
     response = await client.chat.completions.create(
@@ -58,21 +59,31 @@ async def request_to_AI(path: str, entries: List[entry_mod.EntryRead], lot_model
     return response.choices[0].message.content
 
 
-async def analyze_plant_data(lot_id: int, user_id: int) -> dict | None:
+async def analyze_plant_data(lot_id: int):
+    entries = await entry.get_entries(lot_id)
+    if not entries:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Not enough data!")
+
+    cache.pop(lot_id, None)
+
+    lot_detail = await lot.get_lot_detail(lot_id)
+    latest_image_path = entries[-1].photo_url
+    response = await request_to_AI(latest_image_path, entries, lot_detail)
+
+    cache[lot_id] = response
+
+
+async def get_cached_analysis(lot_id: int, user_id: int) -> dict | None:
     lot_model = await lot.get_lot_detail(lot_id)
     if not lot_model:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found")
     if lot_model.user_id != user_id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to add an entry to this lot")
-    entries = await entry.get_entries(lot_id)
-    if not entries:
-        return {"msg": "Not enough data!"}
+            status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to add an entry to this lot"
+        )
     cached_result = cache.get(lot_id)
     if cached_result:
-        return {"result": cache.get(lot_id)}
-    lot_detail = await lot.get_lot_detail(lot_id)
-    latest_image_path = entries[-1].photo_url
-    response = await request_to_AI(latest_image_path, entries, lot_detail)
-    cache[lot_id] = response
-    return {"result": response}
+        return {"result": cached_result}
+
+    else:
+        await analyze_plant_data(lot_id)
