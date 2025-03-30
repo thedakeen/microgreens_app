@@ -8,7 +8,8 @@ from data.config import new_session, EntryOrm
 from models.entry import EntryCreate, EntryRead
 from typing import List
 
-from service import lot
+from service import lot, analysis
+
 
 async def save_photo(upload: UploadFile, upload_dir: str = "../static/images/entries/") -> str:
     os.makedirs(upload_dir, exist_ok=True)
@@ -40,6 +41,7 @@ async def create_entry(data: EntryCreate, lot_id: int, photo_url: str) -> EntryR
             await session.flush()
             await session.commit()
             entry = EntryRead.from_orm(entry_model)
+            await analysis.analyze_plant_data(lot_id)
             return entry
     except AttributeError:
         raise HTTPException(
