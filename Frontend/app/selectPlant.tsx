@@ -30,6 +30,7 @@ const PlantItem = ({ plant, onSelect }) => {
   );
 };
 
+
 export default function SelectPlant({ onSelectPlant, onClose }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [plants, setPlants] = useState([]);
@@ -67,8 +68,8 @@ export default function SelectPlant({ onSelectPlant, onClose }) {
           }
         });
 
-        console.log('Ответ сервера:', response.data);
 
+        console.log(response.data.microgreens)
         if (Array.isArray(response.data)) {
           setPlants(response.data);
         } else if (response.data.microgreens && Array.isArray(response.data.microgreens)) {

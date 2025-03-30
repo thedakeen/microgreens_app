@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import PlantDetailsScreen from './../plantDetails';
 import SelectPlant from '../selectPlant';
 import PhenologicalJournal from '../phenologicalJournal';
 import axios from 'axios';
@@ -38,12 +38,12 @@ interface Lot {
   id: number;
   user_id: number;
   microgreen_id: number;
-  microgreen: Microgreen; // Убедитесь, что это поле есть
-  sowing_date: string;
+  microgreen: Microgreen;
+  sowing_date?: string; // Делаем поле опциональным
   substrate_type: string;
   expected_harvest_date: string;
   created_at: string;
-  avatar_url: string;
+  avatar_url?: string;
 }
 
 // Динамический URL для разных платформ
@@ -72,6 +72,8 @@ const ProfileScreen = () => {
   const [selectedLot, setSelectedLot] = useState<Lot | null>(null);
   const [showJournal, setShowJournal] = useState(false);
 
+  const [selectedLotId, setSelectedLotId] = useState(null);
+
   // Состояния для создания новой грядки
   const [sowingDate, setSowingDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -84,50 +86,42 @@ const ProfileScreen = () => {
     fetchLots();
   }, []);
 
+
   const fetchLots = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('token');
-      
+
       if (!token) {
         throw new Error('Токен не найден');
       }
-  
+
       // 1. Получаем список грядок
       const lotsResponse = await api.get('/lots/', {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-  
-      // 2. Для каждой грядки получаем данные о растении
-      const lotsWithMicrogreens = await Promise.all(
-        lotsResponse.data.map(async (lot: any) => {
-          try {
-            const microgreenResponse = await api.get(`/microgreens/${lot.microgreen_id}`, {
-              headers: {
-                Authorization: `Bearer ${token}`
-              }
-            });
-            return {
-              ...lot,
-              microgreen: microgreenResponse.data
-            };
-          } catch (error) {
-            console.error(`Ошибка при загрузке растения ${lot.microgreen_id}:`, error);
-            return {
-              ...lot,
-              microgreen: {
-                id: lot.microgreen_id,
-                name: 'Неизвестное растение',
-                image_url: 'default_plant.png'
-              }
-            };
+
+      // 2. Получаем список всех растений
+      const plantsResponse = await api.get('/microgreens', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const updatedLots = lotsResponse.data.map((lot: any) => {
+        const plant = plantsResponse.data.find((p: any) => p.id === lot.microgreen_id);
+        return {
+          ...lot,
+          microgreen: plant || {
+            id: lot.microgreen_id,
+            name: 'Неизвестное растение',
           }
-        })
-      );
-  
-      setLots(lotsWithMicrogreens);
+        };
+      });
+
+      setLots(updatedLots);
     } catch (error) {
       console.error('Ошибка при загрузке грядок:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить грядки');
@@ -162,58 +156,63 @@ const ProfileScreen = () => {
     setExpectedHarvestDate(currentDate);
   };
 
-  const formatDate = (date: Date | string) => {
+ const formatDate = (date: Date | string | undefined): string => {
+  if (!date) return 'Дата не указана';
+
+  try {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return `${dateObj.getDate().toString().padStart(2, '0')}.${(dateObj.getMonth() + 1)
-      .toString()
-      .padStart(2, '0')}.${dateObj.getFullYear()}`;
-  };
+
+    if (isNaN(dateObj.getTime())) {
+      return 'Неверная дата';
+    }
+
+    const day = dateObj.getDate().toString().padStart(2, '0');
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+    const year = dateObj.getFullYear();
+
+    return `${day}.${month}.${year}`;
+  } catch (error) {
+    console.error('Ошибка форматирования даты:', error);
+    return 'Ошибка даты';
+  }
+};
 
   const createLot = async () => {
     if (!selectedMicrogreen) {
       Alert.alert('Ошибка', 'Не выбрано растение');
       return;
     }
-  
+
     try {
       const token = await AsyncStorage.getItem('token');
-      
+
       if (!token) {
         throw new Error('Токен не найден');
       }
-  
-      // 1. Создаем грядку
+
       const response = await api.post(
-        '/lots/',
-        {
-          microgreen_id: selectedMicrogreen.id,
-          sowing_date: sowingDate.toISOString(),
-          substrate_type: substrateType,
-          expected_harvest_date: expectedHarvestDate.toISOString(),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
+          '/lots/',
+          {
+            microgreen_id: selectedMicrogreen.id,
+            sowing_date: sowingDate.toISOString(),
+            substrate_type: substrateType,
+            expected_harvest_date: expectedHarvestDate.toISOString(),
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
           }
-        }
       );
-  
-      // 2. Получаем данные о растении
-      const microgreenResponse = await api.get(`/microgreens/${selectedMicrogreen.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-  
-      // 3. Добавляем новую грядку с данными о растении
+
+      // Добавляем новую грядку с полными данными о растении
       const newLot = {
         ...response.data,
-        microgreen: microgreenResponse.data
+        microgreen: selectedMicrogreen // Используем уже выбранное растение
       };
-  
+
       setLots(prev => [newLot, ...prev]);
-      
-      // Закрываем модальное окно и сбрасываем поля
+
       setRegistrationModalVisible(false);
       setSelectedMicrogreen(null);
       setSowingDate(new Date());
@@ -272,19 +271,19 @@ const ProfileScreen = () => {
                   renderItem={({ item }) => (
                     <TouchableOpacity
                       onPress={() => {
-                        setSelectedLot(item);
+                        setSelectedLot(item);//item is a lot
                         setShowJournal(true);
                       }}
                     >
                       <View style={styles.card}>
                         <Image
-                          source={{ uri: item.microgreen?.image_url || item.avatar_url || 'https://via.placeholder.com/100' }}
+                          source={{ uri: item.microgreen?.image_url || item.avatar_url}}
                           style={styles.cardImage}
                         />
                         <View style={styles.cardTextContainer}>
                           <Text style={styles.cardTitle}>{item.microgreen?.name || 'Неизвестное растение'}</Text>
                           <Text style={styles.cardSubtitle}>
-                            Посев: {formatDate(item.sowing_date)}
+  Посев: {formatDate(item?.sowing_date)}
                           </Text>
                           {item.microgreen?.days_to_grow && (
                             <Text style={styles.cardDetails}>
@@ -323,7 +322,7 @@ const ProfileScreen = () => {
       case 'main':
         return (
           <View style={styles.contentContainer}>
-            <Text style={styles.emptyStateText}>Главная</Text>
+            <PlantDetailsScreen />
           </View>
         );
       default:
@@ -335,7 +334,7 @@ const ProfileScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.profileHeader}>
         <View style={styles.avatarContainer}>
-          <Image source={{ uri: 'https://via.placeholder.com/100' }} style={styles.avatar} />
+          <Image source={{ uri: 'data:image/jpeg;base64,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' }} style={styles.avatar} />
         </View>
         <View style={styles.profileInfo}>
           <Text style={styles.userName}>Пользователь</Text>
@@ -369,7 +368,7 @@ const ProfileScreen = () => {
           onPress={() => handleTabPress('main')}
         >
           <Text style={[styles.tabText, activeTab === 'main' && styles.activeTabText]}>
-            Главная
+            О цветах
           </Text>
         </TouchableOpacity>
       </View>

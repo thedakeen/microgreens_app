@@ -1,11 +1,27 @@
-import React, { useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {View, Text, SafeAreaView, ScrollView, Platform} from 'react-native';
 import NotificationList from '../../components/notification/NotificationList';
 import NotificationForm from '../../components/notification/NotificationForm';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
 const MainScreen = () => {
   const [notifications, setNotifications] = useState([]);
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const API_BASE_URL = Platform.select({
+    ios: 'http://192.168.1.179:8000', // Для iOS
+    android: 'http://10.0.2.2:8000',      // Для Android эмулятора
+    default: 'http://127.0.0.1:8000'      // Для веба
+  });
+
+  const api = axios.create({
+    baseURL: API_BASE_URL,
+    timeout: 10000,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  });
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -13,14 +29,12 @@ const MainScreen = () => {
         const token = await AsyncStorage.getItem('token');
         if (!token) throw new Error('Токен не найден');
 
-        const response = await axios.get(`${API_BASE_URL}/notifications`, {
+        const response = await api.get('/notifications', {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        // Добавляем проверку данных
         const loadedNotifications = response.data.map((n: any) => {
-          // Проверяем наличие scheduledDate
-          const scheduledDate = n.scheduledDate 
+          const scheduledDate = n.scheduledDate
             ? new Date(n.scheduledDate) 
             : new Date(Date.now() + 86400000); // Дефолтная дата +1 день если нет
             
@@ -44,6 +58,7 @@ const MainScreen = () => {
 
     fetchNotifications();
   }, []);
+
   const handleAddNotification = (newNotification) => {
     setNotifications([
       ...notifications,
