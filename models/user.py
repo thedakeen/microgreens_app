@@ -14,3 +14,7 @@ class User(BaseModel):
 
 class Password(BaseModel):
     password: str
+
+
+class PushTokenUpdate(BaseModel):
+    expo_push_token: str

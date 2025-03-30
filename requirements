@@ -13,3 +13,4 @@ pydantic[email]
 python-dotenv
 cachetools
 g4f[all]
+exponent_server_sdk

@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import ForeignKey, UniqueConstraint, DateTime, func
+from sqlalchemy import ForeignKey, UniqueConstraint, DateTime, func, String
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, relationship
 from sqlalchemy import select
@@ -48,6 +48,9 @@ class UserOrm(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str]
     hashed_password: Mapped[str]
+
+    expo_push_token: Mapped[str] = mapped_column(String, nullable=True)
+
     created_at: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
 
     lots: Mapped[list['LotOrm'] | None] = relationship('LotOrm', back_populates='user', cascade="all, delete")

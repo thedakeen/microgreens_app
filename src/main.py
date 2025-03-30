@@ -7,7 +7,8 @@ from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from data.config import create_tables, delete_tables, seed_microgreens_library
-from web import user, lot, entry, microgreen_library, notification,analysis
+from service.push_scheduler import start_scheduler
+from web import user, lot, entry, microgreen_library, notification, analysis, push_token
 from tools.аuthMiddleware import AuthMiddleware
 
 load_dotenv()
@@ -20,6 +21,8 @@ async def lifespan(app: FastAPI):
 
     from data.config import seed_microgreens_library
     await seed_microgreens_library()
+
+    start_scheduler()
 
     yield
     print("Выключение")
@@ -42,6 +45,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(user.router)
+app.include_router(push_token.router)
+
 app.include_router(lot.router)
 app.include_router(entry.router)
 app.include_router(microgreen_library.router)
